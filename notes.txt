@@ -1,0 +1,8 @@
+general behavior / functionality
+have the icon color be green if there are questions for youtube; red if there is not
+
+if its green, it will open a new tab with the web client and its questions
+
+if its red, the click does nothing
+
+for future can have a popup with other options
