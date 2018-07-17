@@ -6,19 +6,7 @@ const getYoutubeVideoId = url => {
   return (match && match[7].length == 11) ? match[7] : false;
 }
 
-const getQuestionsUrl = async (videoId) => {
-
-  return fetch('http://localhost:3000/api/v1/youtube/' + videoId )
-    .then(dataWrappedByPromise => dataWrappedByPromise.json())
-    .then(data => {
-      if (data !== null) {
-        return data.questionsUrl;
-      }
-      else return null;
-    })
-    .catch(err => console.log(err));
-};
-
+// this runs every time there is an update in the browser
 chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
 
   if (changeInfo.status === 'loading') {
@@ -34,25 +22,40 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
 
     const vidId = getYoutubeVideoId(tab.url);
 
-    let qUrl = await getQuestionsUrl(vidId);
-    questionsUrl = qUrl;
+    // do a http get request to check if there is a querstions url for the video
+    let isQuestionUrl = false;
+    let xhr = new XMLHttpRequest();
+    xhr.open('GET', `https://tubetest.herokuapp.com/api/v1/youtube/${vidId}`, true);
+    xhr.onreadystatechange = function () {
+      if (xhr.readyState == 4) {
+        isQuestionUrl = JSON.parse(xhr.responseText);
 
-    // do get request to see if there are questions for that video
-    if (qUrl !== null) {
-      chrome.browserAction.setIcon({ path: 'images/green.png' });
+        if (isQuestionUrl) {
+          questionsUrl = `https://tubetest-react.herokuapp.com/questions/${vidId}`;
+        }
+        else questionsUrl = null;
+
+        // do get request to see if there are questions for that video
+        if (isQuestionUrl === true) {
+          chrome.browserAction.setIcon({ path: 'images/green.png' });
+        }
+
+      }
     }
+    xhr.send();
   }
 });
 
 chrome.browserAction.onClicked.addListener(tab => {
   if (questionsUrl !== null) {
-    console.log(questionsUrl);
     // open the url in a new tab
-    chrome.tabs.create({ url: `http://${questionsUrl}` });
+    chrome.tabs.create({ url: `${questionsUrl}` });
   }
   else if (tab.url.includes("youtube.com") && getYoutubeVideoId(tab.url) !== false) {
     // send user to create a question link
     let vidId = getYoutubeVideoId(tab.url);
-    chrome.tabs.create({ url: `http://localhost:3001/question/${vidId}` });
+    chrome.tabs.create({
+      url: `https://tubetest-react.herokuapp.com/question/${vidId}`
+    });
   }
 });
